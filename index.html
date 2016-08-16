@@ -5,22 +5,24 @@
   <title>Image Overlay Over Loaded Background</title>
   <link rel="stylesheet" type="text/css" href="assets/css/styles.css">
   <link rel="stylesheet" type="text/css" href="assets/css/mui-0.6.8/mui.css">
-  <!-- <script src="assets/js/modernizr-custom.js"></script> -->
+  <script src="assets/js/modernizr-custom.js"></script>
   <script src="assets/js/adapter-2.0.0/adapter.js"></script>
   <script src="assets/js/mui-0.6.8/mui.js"></script>
   <script src="assets/js/fabric.js"></script>
 </head>
 <body>
   <div id="assets" style="display: none;">
-    <video id="stream" autoplay></video>
     <img id="item" src="img/chair1.png">
-    <img id="capture">
   </div>
   <div id="user-ui">
+    <video id="stream" autoplay></video>
     <canvas id='canvas'></canvas>
-    <button id="btnCapture">Captura</button>
-    <button id="btnSave" style="display: none;">Guardar Imagen</button>
-    <button id="btnAgain" style="display: none;">Nueva Imagen</button>
+    <img id="capture">
+    <div id="controls">
+      <button id="btn-capture" class="mui-btn mui-btn--primary">Captura</button>
+      <a id="btn-save" class="mui-btn mui-btn--primary">Guardar</a>
+      <button id="btn-again" class="mui-btn mui-btn--primary">Nueva</button>
+    </div>
   </div>
   <script src="assets/js/main.js"></script>
 </body>

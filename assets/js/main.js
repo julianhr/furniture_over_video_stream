@@ -1,22 +1,28 @@
 'use strict';
 
-// variables
-var canvas = document.querySelector('#canvas');
-var video = document.querySelector('#stream');
-var stream;
+// VARIABLES
+var 
+  canvas = document.querySelector('#canvas'),
+  video = document.querySelector('#stream'),
+  wrapper = document.querySelector('#user-ui'),
+  windowWidth = window.innerWidth,
+  windowHeight = window.innerHeight,
+  videoLeftOffset = 0,
+  videoTopOffset = 0,
+  stream,
 
-var imgCapture = document.querySelector('#capture');
-var btnCapture = document.querySelector('#btnCapture');
-var btnSave = document.querySelector('#btnSave');
-var btnAgain = document.querySelector('#btnAgain');
+  imgCapture = document.querySelector('#capture'),
+  btnCapture = document.querySelector('#btn-capture'),
+  aSave = document.querySelector('#btn-save'),
+  btnAgain = document.querySelector('#btn-again'),
 
-var fabricCanvas = new fabric.Canvas(canvas);
-var fabricVideo = new fabric.Image(video);
-var fabricItem = new fabric.Image(document.querySelector('#item'));
+  fabricCanvas = new fabric.Canvas(canvas),
+  fabricItem = new fabric.Image(document.querySelector('#item'));
 
 
-function fire_getUserMedia() {
-  var streamConstraints = function() {
+// SET VIDEO
+function getVideoStream() {
+  var constraints = function() {
     if (stream) {
       stream.getTracks().forEach(function(track) {
         track.stop();
@@ -26,78 +32,71 @@ function fire_getUserMedia() {
     return {video: true, audio: false};
   }();
 
-  var streamSuccessCallback = function(mediaStream) {
+  var successCallback = function(mediaStream) {
     window.stream = mediaStream;
     video.srcObject = mediaStream;
+    video.play();
+
+    console.log("Video stream from the mobile device successfully obtained.");
   }
 
-  var streamErrorCallback = function(error) {
+  var errorCallback = function(error) {
     var errorName = 'getUserMedia name: ' + error.name;
+
     console.log(errorName);
+    console.log(error);
   }
 
   // execute getUserMedia Promise
-  navigator.mediaDevices.getUserMedia(streamConstraints)
-    .then(streamSuccessCallback)
-    .catch(streamErrorCallback);
+  navigator.mediaDevices.getUserMedia(constraints)
+    .then(successCallback)
+    .catch(errorCallback);
 }
-// fire_getUserMedia();
+getVideoStream();
 
 
-// functions for setting canvas and video
-function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  canvas.style = null;
-/*  canvas.style.width = window.innerWidth + "px";
-  canvas.style.height = window.innerHeight + "px";
-  canvas.style.background = 'pink';*/
-}
+function resizeVideoTag() {
+  var 
+    videoRatioWidthToHeight = video.videoWidth / video.videoHeight,
+    windowRatioWidthToHeiht = windowWidth / windowHeight,
+    orientation = (windowWidth / windowHeight >= 1) ? 'horizontal' : 'vertical';
 
-function setFabricVideo() {
-  var videoRatioWidthToHeight = video.videoWidth / video.videoHeight;
-  var orientation = (window.innerWidth / window.innerHeight >= 1) ? 'horizontal' : 'vertical';
-  var videoWidth;
-  var videoHeight;
-  var videoTop;
-  var videoLeft;
+  // window aspect is narrower than video
+  if (videoRatioWidthToHeight < windowRatioWidthToHeiht) {
+      var heightDiff = Math.round(windowWidth / videoRatioWidthToHeight) - windowHeight;
 
-  switch (orientation) {
-    case 'horizontal':
-      videoWidth = canvas.width;
-      videoHeight = Math.ceil(videoWidth / videoRatioWidthToHeight);
-      videoTop = -Math.floor((videoHeight - window.innerHeight) / 2);
-      videoLeft = 0;      
-      break;
-    case 'vertical':
-      videoHeight = canvas.height;
-      videoWidth = Math.floor(videoHeight * videoRatioWidthToHeight);
-      videoTop = 0;
-      videoLeft = -Math.floor((videoWidth - window.innerWidth) / 2);
-      break;
+      video.width = windowWidth;
+      video.height = Math.round(windowWidth / videoRatioWidthToHeight);
+
+      if (heightDiff > 0) {
+        videoTopOffset = Math.round(heightDiff / 2);
+        video.style.marginTop = "-" + videoTopOffset + "px";
+      }
+  // window aspect is wider than video
+  } else if (videoRatioWidthToHeight > windowRatioWidthToHeiht) {
+      var widthDiff = Math.round(windowHeight * videoRatioWidthToHeight) - windowWidth;
+
+      video.height = windowHeight;
+      video.width = Math.round(windowHeight * videoRatioWidthToHeight);
+
+      if (widthDiff > 0) {
+        videoLeftOffset = Math.round(widthDiff / 2)
+        video.style.marginLeft = "-" + videoLeftOffset + "px";
+      }
+  // window has same aspect as video
+  } else {
+    video.width = windowWidth;
+    video.height = windowHeight;
   }
-  
-  fabricVideo.set({
-    top: videoTop, 
-    left: videoLeft, 
-    width: videoWidth, 
-    height: videoHeight, 
-    selectable: false
-  });
+}
 
-  fabricCanvas.add(fabricVideo);
-
-  // request video stream animation
-  fabric.util.requestAnimFrame(function render() {
-    fabricCanvas.renderAll();
-    fabric.util.requestAnimFrame(render);
-  });
-
-  console.log("Video stream from the mobile device successfully obtained.");
+function resizeFabricCanvas() {
+  fabricCanvas.setWidth(windowWidth);
+  fabricCanvas.setHeight(windowHeight);
 }
 
 function setFabricItem() {
-  fabricItem.set({top: 100, left: 100});
+  fabricItem.set({top: 50, left: 50});
 
   fabricCanvas
     .add(fabricItem)
@@ -106,40 +105,54 @@ function setFabricItem() {
   fabricCanvas.renderAll();
 }
 
-function combineFabricElements() {
-  resizeCanvas();
-  // setFabricVideo();
+function combineElements() {
+  wrapper.style.width = windowWidth + "px";
+  wrapper.style.height = windowHeight + "px";
+
+  resizeVideoTag();
+  resizeFabricCanvas();
   setFabricItem();
 }
 
-video.onloadedmetadata = combineFabricElements;
-combineFabricElements();
+// combineElements();
+video.onloadedmetadata = combineElements;
 
 function uiButtons(state) {
   if (state === 'capture') {
     btnCapture.style.display = 'inline';
-    btnSave.style.display = 'none';
+    aSave.style.display = 'none';
     btnAgain.style.display = 'none';
   } else if (state === 'save') {
     btnCapture.style.display = 'none';
-    btnSave.style.display = 'inline';
+    aSave.style.display = 'inline';
     btnAgain.style.display = 'inline';
   }
 }
 
-// event listeners
-btnSave.onclick = function(event) {
-};
 
-btnAgain.onclick = function(event) {
-  uiButtons('capture');
-};
-
+// EVENT LISTENERS
 btnCapture.onclick = function(event) {
+  var 
+    upperCanvas = document.querySelector('.upper-canvas'),
+    ctx = upperCanvas.getContext('2d'),
+    screenshot = new fabric.Image(imgCapture);
+
+  // grab video frame and overlay the furniture
   fabricCanvas.deactivateAll().renderAll();
-  imgCapture.src = canvas.toDataURL();
-  var screenshot = new fabric.Image(imgCapture);
+  ctx.drawImage(video, -videoLeftOffset, -videoTopOffset, video.width, video.height);
+  ctx.drawImage(canvas, 0, 0);
+  imgCapture.src = upperCanvas.toDataURL();
+  aSave.href = imgCapture.src;
+  aSave.download = "visualizacion.png"
+  ctx.clearRect(0, 0, windowWidth, windowHeight);
+
   uiButtons('save');
   fabricCanvas.add(screenshot);
   fabricCanvas.renderAll();
+};
+
+btnAgain.onclick = function(event) {
+  imgCapture.src = "";
+  uiButtons('capture');
+  fabricCanvas.setActiveObject(fabricItem);
 };

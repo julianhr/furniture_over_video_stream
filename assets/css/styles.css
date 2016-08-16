@@ -1,3 +1,22 @@
-
+#user-ui {
+  position: absolute;
+  display: block;
+  overflow: hidden; }
+  #user-ui video, #user-ui canvas, #user-ui img, #user-ui button, #user-ui a {
+    position: absolute; }
+  #user-ui #btn-capture {
+    top: 20px;
+    left: 20px; }
+  #user-ui #btn-save {
+    top: 20px;
+    left: 20px;
+    display: none; }
+  #user-ui #btn-again {
+    top: 20px;
+    right: 20px;
+    display: none; }
+  #user-ui video, #user-ui canvas, #user-ui img {
+    top: 0;
+    left: 0; }
 
 /*# sourceMappingURL=styles.css.map */
