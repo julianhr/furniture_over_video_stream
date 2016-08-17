@@ -11,17 +11,18 @@
   <script src="assets/js/fabric.js"></script>
 </head>
 <body>
-  <div id="assets" style="display: none;">
-    <img id="item" src="img/chair1.png">
+  <div style="display: none;">
+    <img id="item" src="img/sofa1.png">
+    <img id="capture">
+    <canvas id="composite"></canvas>
   </div>
   <div id="user-ui">
     <video id="stream" autoplay></video>
     <canvas id='canvas'></canvas>
-    <img id="capture">
     <div id="controls">
-      <button id="btn-capture" class="mui-btn mui-btn--primary">Captura</button>
-      <a id="btn-save" class="mui-btn mui-btn--primary">Guardar</a>
-      <button id="btn-again" class="mui-btn mui-btn--primary">Nueva</button>
+      <button id="btn-capture" class="mui-btn mui-btn--primary mui-btn--large">Captura</button>
+      <a id="btn-save" class="mui-btn mui-btn--primary mui-btn--large">Guardar</a>
+      <button id="btn-again" class="mui-btn mui-btn--large">Nueva</button>
     </div>
   </div>
   <script src="assets/js/main.js"></script>
