@@ -1,7 +1,7 @@
 'use strict';
 
-function furnitureOnVideo() {
-  // VARIABLES
+function FabricjsOverVideo() {
+  // PRIVATE VARIABLES
   var 
     wrapper = document.querySelector('div#user-ui'),
     canvas = document.querySelector('canvas#canvas'),
@@ -16,22 +16,10 @@ function furnitureOnVideo() {
     btnAgain = document.querySelector('button#btn-again'),
 
     fabricCanvas = new fabric.Canvas(canvas),
-    fabricItem = new fabric.Image(document.querySelector('#item'));
+    fabricItem = null;
 
 
-  // FUNCTIONS
-  function uiButtons(state) {
-    if (state === 'capture') {
-      btnCapture.style.display = 'inline';
-      aSave.style.display = 'none';
-      btnAgain.style.display = 'none';
-    } else if (state === 'save') {
-      btnCapture.style.display = 'none';
-      aSave.style.display = 'inline';
-      btnAgain.style.display = 'inline';
-    }
-  }
-
+  // PRIVATE FUNCTIONS
   function getVideoStream() {
     var constraints = {
       video: true, 
@@ -57,8 +45,26 @@ function furnitureOnVideo() {
       .catch(errorCallback);
   }
 
+  function uiButtons(state) {
+    if (state === 'capture') {
+      btnCapture.style.display = 'inline';
+      aSave.style.display = 'none';
+      btnAgain.style.display = 'none';
+    } else if (state === 'save') {
+      btnCapture.style.display = 'none';
+      aSave.style.display = 'inline';
+      btnAgain.style.display = 'inline';
+    }
+  }
+
   function setInitialState() {
-    imgCapture.style.display = 'none';
+    video.play();
+
+    if (fabricItem !== null) {
+      fabricItem.set({selectable: true});
+      fabricCanvas.setActiveObject(fabricItem).renderAll();
+    }
+
     imgCapture.src = "";
     uiButtons('capture');
   }
@@ -76,6 +82,9 @@ function furnitureOnVideo() {
       videoHeight = 0,
       px = "px",
       minus = "-";
+
+    // important, otherwise the offset won't be updated correctly on the 'onresize' event
+    videoTopOffset = videoLeftOffset = 0;
 
     // window aspect is narrower than video
     if (videoRatioWidthToHeight < windowRatioWidthToHeight) {
@@ -114,49 +123,77 @@ function furnitureOnVideo() {
   function resizeFabricCanvas() {
     fabricCanvas.setWidth(window.innerWidth);
     fabricCanvas.setHeight(window.innerHeight);
+
+    // Firefox mobile requires this hack
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
   }
 
-  function resizeimgCanvasCanvas() {
+  function resize_imgCanvas() {
     imgCanvas.width = window.innerWidth;
     imgCanvas.height = window.innerHeight;
   }
 
   function setFabricItem() {
-    var coord = fabricCanvas.getCenter();
+    var 
+      imgItem = null,
+      coord = fabricCanvas.getCenter();
 
-    fabricItem.set({
-      originX: 'center',
-      originY: 'center',
-      top: coord.top + 50,
-      left: coord.left,
-      borderColor: 'green',
-      borderDashArray: [10, 10],
-      cornerStyle: 'circle',
-      cornerSize: 44,
-      borderScaleFactor: .3,
-      cornerColor: 'orange',
-      lockUniScaling: true
-    });
+    coord.top += 50;
+    fabricCanvas.clear();
 
-    fabricCanvas
-      .add(fabricItem)
-      .setActiveObject(fabricItem)
-      .renderAll();
+    // create the item image and the fabric object on 'onload' event
+    if (fabricCanvas.isEmpty()) {
+      imgItem = new Image();
+      imgItem.src = 'img/sofa1.png';
+
+      imgItem.onload = function() {
+        // condition required because Firefox mobile fires 'onload' and 'onresize' events
+        // on start, which triggers this function twice and therefore creates two instances
+        if (fabricCanvas.isEmpty()) {
+          fabricItem = new fabric.Image(imgItem);
+
+          fabricItem.set({
+            originX: 'center',
+            originY: 'center',
+            top: coord.top,
+            left: coord.left,
+            borderColor: 'green',
+            borderDashArray: [10, 10],
+            cornerStyle: 'circle',
+            cornerSize: 60,
+            borderScaleFactor: 0.15,
+            cornerColor: 'orange',
+            lockUniScaling: true
+          });
+
+          fabricCanvas
+            .add(fabricItem)
+            .setActiveObject(fabricItem)
+            .renderAll();
+        }
+      };
+    } else {
+      fabricItem.set({
+        top: coord.top,
+        left: coord.left
+      }).setCoords(coord);
+
+      fabricCanvas.setActiveObject(fabricItem).renderAll();
+    }
   }
 
-  function main() {
-    getVideoStream();
-    setInitialState();
-    resizeWrapper();
-    resizeFabricCanvas();
-    resizeimgCanvasCanvas();
-    setFabricItem();
-
-    video.onloadedmetadata = function() {
-      resizeVideoTag();
-    };
+function resumeVideo() {
+  if (video.srcObject) {
+    video.play();
   }
-  main();
+
+  fabricItem.set({selectable: true});
+  fabricCanvas.setActiveObject(fabricItem).renderAll();
+
+  imgCapture.src = "";
+  uiButtons('capture');
+};
 
 
   // EVENT LISTENERS
@@ -165,6 +202,7 @@ function furnitureOnVideo() {
 
     fabricItem.set({selectable: false});
     fabricCanvas.deactivateAll().renderAll();
+
     
     uiButtons('save');
   };
@@ -177,19 +215,37 @@ function furnitureOnVideo() {
 
     // set image for download
     aSave.href = imgCanvas.toDataURL();
-    aSave.download = "alameda_visualizacion.png"
-  }
+    aSave.download = "alameda_visualizacion.png";
+  };
 
-  btnAgain.onclick = function(event) {
-    video.play();
+  btnAgain.onclick = setInitialState;
 
-    fabricItem.set({selectable: true});
-    fabricCanvas.setActiveObject(fabricItem).renderAll();
+  // PUBLIC API
+  this.onload = function() {
+    getVideoStream();
+    setInitialState();
+    resizeWrapper();
+    resizeVideoTag();
+    resizeFabricCanvas();
+    resize_imgCanvas();
+    setFabricItem();
 
-    imgCapture.src = "";
-    uiButtons('capture');
+    video.onloadedmetadata = function() {
+      resizeVideoTag();
+    };
+  };
+
+  this.onresize = function() {
+    setInitialState();
+    resizeWrapper();
+    resizeVideoTag();
+    resizeFabricCanvas();
+    resize_imgCanvas();
+    setFabricItem();
   };
 }
 
-window.onload = furnitureOnVideo;
-window.onresize = furnitureOnVideo;
+var module = new FabricjsOverVideo();
+
+window.onload = module.onload;
+window.onresize = module.onresize;
