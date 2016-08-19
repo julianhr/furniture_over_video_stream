@@ -3,46 +3,88 @@
 function FabricjsOverVideo() {
   // PRIVATE VARIABLES
   var 
+    videoInputs = [],
+    videoInput_i = 0,
+
     wrapper = document.querySelector('div#user-ui'),
     canvas = document.querySelector('canvas#canvas'),
     imgCanvas = document.querySelector('canvas#composite'),
+    imgCapture = document.querySelector('img#capture'),
+    
     video = document.querySelector('video#stream'),
     videoLeftOffset = 0,
     videoTopOffset = 0,
 
-    imgCapture = document.querySelector('img#capture'),
     btnCapture = document.querySelector('button#btn-capture'),
     aSave = document.querySelector('a#btn-save'),
     btnAgain = document.querySelector('button#btn-again'),
+    btnVideoInput = document.querySelector('button#btn-video-input'),
 
     fabricCanvas = new fabric.Canvas(canvas),
     fabricItem = null;
 
 
   // PRIVATE FUNCTIONS
-  function getVideoStream() {
-    var constraints = {
-      video: true, 
-      audio: false,
-      facingMode: { exact: "environment" }
+  function getVideoInputs() {
+    var gotVideoInputs = function(videoInputsInfo) {
+      videoInputsInfo.forEach(function(device) {
+        if (device.kind === 'videoinput') {
+          videoInputs.push(device);
+        }
+      });
+
+      if (videoInputs.length > 1) {
+        btnVideoInput.style.display = 'inline';
+      }
     };
 
-    var successCallback = function(mediaStream) {
-      window.stream = mediaStream;
-      video.srcObject = mediaStream;
-    }
-
-    var errorCallback = function(error) {
-      var errorName = 'getUserMedia name: ' + error.name;
+    var handleError = function(error) {
+      var errorName = 'enumerateDevices name: ' + error.name;
 
       console.log(errorName);
+      console.log(error);
+    };
+
+    navigator.mediaDevices.enumerateDevices()
+      .then(gotVideoInputs)
+      .catch(handleError);
+  }
+
+  function getVideoStream(deviceId) {
+    // important!
+    // tracks must be stopped before choosing a different video input
+    // otherwise, the new input will not be hooked correctly
+    if (window.stream && window.stream.getTracks) {
+      window.stream.getTracks().forEach(function(track) {
+        track.stop();
+      });
+    }
+
+    var constraints = {
+      video: deviceId ? {deviceId: {exact: deviceId}} : true,
+      audio: false,
+    };
+
+    console.log(constraints);
+
+    var gotStream = function(mediaStream) {
+      window.stream = mediaStream;
+      video.srcObject = mediaStream;
+
+      return navigator.mediaDevices.enumerateDevices();
+    }
+
+    var handleError = function(error) {
+      /*var errorName = 'getUserMedia name: ' + error.name;
+
+      console.log(errorName);*/
       console.log(error);
     }
 
     // execute getUserMedia Promise
     navigator.mediaDevices.getUserMedia(constraints)
-      .then(successCallback)
-      .catch(errorCallback);
+      .then(gotStream)
+      .catch(handleError);
   }
 
   function uiButtons(state) {
@@ -58,7 +100,9 @@ function FabricjsOverVideo() {
   }
 
   function setInitialState() {
-    video.play();
+    if (video.srcObject) {
+      video.play();
+    }
 
     if (fabricItem !== null) {
       fabricItem.set({selectable: true});
@@ -183,18 +227,6 @@ function FabricjsOverVideo() {
     }
   }
 
-function resumeVideo() {
-  if (video.srcObject) {
-    video.play();
-  }
-
-  fabricItem.set({selectable: true});
-  fabricCanvas.setActiveObject(fabricItem).renderAll();
-
-  imgCapture.src = "";
-  uiButtons('capture');
-};
-
 
   // EVENT LISTENERS
   btnCapture.onclick = function(event) {
@@ -218,30 +250,55 @@ function resumeVideo() {
     aSave.download = "alameda_visualizacion.png";
   };
 
-  btnAgain.onclick = setInitialState;
+  btnVideoInput.onclick = function() {
+    if (videoInput_i < videoInputs.length-1) {
+      videoInput_i++;
+    } else {
+      videoInput_i = 0;
+    }
 
-  // PUBLIC API
-  this.onload = function() {
-    getVideoStream();
-    setInitialState();
-    resizeWrapper();
-    resizeVideoTag();
-    resizeFabricCanvas();
-    resize_imgCanvas();
-    setFabricItem();
+    getVideoStream(videoInputs[videoInput_i].deviceId);
 
     video.onloadedmetadata = function() {
       resizeVideoTag();
     };
   };
 
+  btnAgain.onclick = setInitialState;
+
+
+  // PUBLIC API
+  this.onload = function() {
+    if (Modernizr.getusermedia) {
+      getVideoInputs();
+      getVideoStream();
+      setInitialState();
+      resizeWrapper();
+      resizeVideoTag();
+      resizeFabricCanvas();
+      resize_imgCanvas();
+      setFabricItem();
+
+      video.onloadedmetadata = function() {
+        resizeVideoTag();
+      };
+    } else {
+      var notice = document.querySelector('#browser-notice');
+
+      notice.style.display = 'inherit';
+      wrapper.style.display = 'none';
+    }
+  };
+
   this.onresize = function() {
-    setInitialState();
-    resizeWrapper();
-    resizeVideoTag();
-    resizeFabricCanvas();
-    resize_imgCanvas();
-    setFabricItem();
+    if (Modernizr.getusermedia) {
+      setInitialState();
+      resizeWrapper();
+      resizeVideoTag();
+      resizeFabricCanvas();
+      resize_imgCanvas();
+      setFabricItem();
+    }
   };
 }
 
