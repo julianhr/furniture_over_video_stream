@@ -1,5 +1,6 @@
 # Folders
-.sass-cache
+.sass-cache/
+assets_original/
 
 # Files
-assets_original/
+assets/css/styles.css.map
